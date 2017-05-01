@@ -109,15 +109,12 @@ class BaseDecisionTree(six.with_metaclass(ABCMeta, BaseEstimator)):
         # Determine output settings
         n_samples, self.n_features_ = X.shape
         is_classification = isinstance(self, ClassifierMixin)
-
-        y = np.atleast_1d(y)
         expanded_class_weight = None
 
         if y.ndim == 1:
             # reshape is necessary to preserve the data contiguity against vs
             # [:, np.newaxis] that does not.
             y = np.reshape(y, (-1, 1))
-
         self.n_outputs_ = y.shape[1]
 
         if is_classification:
@@ -300,20 +297,16 @@ class BaseDecisionTree(six.with_metaclass(ABCMeta, BaseEstimator)):
                 criterion = CRITERIA_REG[self.criterion](self.n_outputs_,
                                                          n_samples)
 
-        SPLITTERS = SPARSE_SPLITTERS if issparse(X) else DENSE_SPLITTERS
-
         splitter = self.splitter
         if not isinstance(self.splitter, Splitter):
-            splitter = SPLITTERS[self.splitter](criterion,
-                                                self.max_features_,
-                                                min_samples_leaf,
-                                                min_weight_leaf,
-                                                random_state,
-                                                self.presort)
-
+            splitter = DENSE_SPLITTERS[self.splitter](criterion,
+                                                      self.max_features_,
+                                                      min_samples_leaf,
+                                                      min_weight_leaf,
+                                                      random_state,
+                                                      self.presort)
         self.tree_ = Tree(self.n_features_, self.n_classes_, self.n_outputs_)
 
-        # Use BestFirst if max_leaf_nodes given; use DepthFirst otherwise
         builder = DepthFirstTreeBuilder(splitter, min_samples_split,
                                         min_samples_leaf,
                                         min_weight_leaf,
@@ -593,3 +586,22 @@ class MondrianTreeRegressor(BaseDecisionTree, RegressorMixin):
         """
         X = self._validate_X_predict(X, check_input)
         return self.tree_.weighted_decision_path(X)
+
+
+class MondrianTreeClassifier(BaseDecisionTree, ClassifierMixin):
+    def __init__(self,
+                 max_depth=None,
+                 min_samples_split=2,
+                 random_state=None):
+        super(MondrianTreeClassifier, self).__init__(
+            criterion="gini",
+            splitter="mondrian",
+            max_depth=max_depth,
+            min_samples_split=min_samples_split,
+            min_samples_leaf=1,
+            min_weight_fraction_leaf=0.0,
+            max_features=None,
+            random_state=random_state,
+            max_leaf_nodes=None,
+            min_impurity_split=1e-7,
+            presort=False)

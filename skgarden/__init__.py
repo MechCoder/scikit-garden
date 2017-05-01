@@ -1,4 +1,5 @@
 from .mondrian import MondrianForestRegressor
+from .mondrian import MondrianTreeClassifier
 from .mondrian import MondrianTreeRegressor
 from .quantile import DecisionTreeQuantileRegressor
 from .quantile import ExtraTreeQuantileRegressor
