@@ -32,7 +32,6 @@ cdef class Criterion:
     cdef SIZE_t start                    # samples[start:pos] are the samples in the left node
     cdef SIZE_t pos                      # samples[pos:end] are the samples in the right node
     cdef SIZE_t end
-
     cdef SIZE_t n_outputs                # Number of outputs
     cdef SIZE_t n_samples                # Number of samples
     cdef SIZE_t n_node_samples           # Number of samples in the node (end-start)

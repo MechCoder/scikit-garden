@@ -29,6 +29,7 @@ from sklearn.base import BaseEstimator
 from sklearn.base import ClassifierMixin
 from sklearn.base import RegressorMixin
 from sklearn.externals import six
+from sklearn.preprocessing import LabelEncoder
 from sklearn.utils import check_random_state
 from sklearn.utils import compute_sample_weight
 from sklearn.utils.multiclass import check_classification_targets
@@ -90,7 +91,7 @@ class BaseDecisionTree(six.with_metaclass(ABCMeta, BaseEstimator)):
 
     def fit(self, X, y, sample_weight=None, check_input=True,
             X_idx_sorted=None):
-
+        print("here")
         random_state = check_random_state(self.random_state)
         if check_input:
             X, y = check_X_y(X, y, dtype=DTYPE, multi_output=False)
@@ -102,44 +103,36 @@ class BaseDecisionTree(six.with_metaclass(ABCMeta, BaseEstimator)):
         y = np.atleast_1d(y)
         expanded_class_weight = None
 
-        if y.ndim == 1:
-            # reshape is necessary to preserve the data contiguity against vs
-            # [:, np.newaxis] that does not.
-            y = np.reshape(y, (-1, 1))
+        if not is_classification:
+            if y.ndim == 1:
+                # reshape is necessary to preserve the data contiguity against vs
+                # [:, np.newaxis] that does not.
+                y = np.reshape(y, (-1, 1))
 
-        self.n_outputs_ = y.shape[1]
+        # print(y)
+        self.n_outputs_ = 1
 
         if is_classification:
             check_classification_targets(y)
             y = np.copy(y)
-
-            self.classes_ = []
-            self.n_classes_ = []
-
             if self.class_weight is not None:
                 y_original = np.copy(y)
 
-            y_encoded = np.zeros(y.shape, dtype=np.int)
-            for k in range(self.n_outputs_):
-                classes_k, y_encoded[:, k] = np.unique(y[:, k],
-                                                       return_inverse=True)
-                self.classes_.append(classes_k)
-                self.n_classes_.append(classes_k.shape[0])
+            le = LabelEncoder()
+            y_encoded = le.fit_transform(y)
+            self.classes_ = le.classes_
+            self.n_classes_ = len(le.classes_)
             y = y_encoded
-
             if self.class_weight is not None:
                 expanded_class_weight = compute_sample_weight(
                     self.class_weight, y_original)
-
         else:
             self.classes_ = [None] * self.n_outputs_
             self.n_classes_ = [1] * self.n_outputs_
-
-        self.n_classes_ = np.array(self.n_classes_, dtype=np.intp)
+            self.n_classes_ = np.array(self.n_classes_, dtype=np.intp)
 
         if getattr(y, "dtype", None) != DOUBLE or not y.flags.contiguous:
             y = np.ascontiguousarray(y, dtype=DOUBLE)
-
         # Check parameters
         max_depth = ((2 ** 31) - 1 if self.max_depth is None
                      else self.max_depth)
@@ -190,27 +183,25 @@ class BaseDecisionTree(six.with_metaclass(ABCMeta, BaseEstimator)):
         criterion = self.criterion
         if not isinstance(criterion, Criterion):
             if is_classification:
-                criterion = CRITERIA_CLF[self.criterion](self.n_outputs_,
-                                                         self.n_classes_)
+                criterion = CRITERIA_CLF[self.criterion](self.n_classes_)
             else:
-                criterion = CRITERIA_REG[self.criterion](self.n_outputs_,
-                                                         n_samples)
+                criterion = CRITERIA_REG[self.criterion](n_samples)
         splitter = self.splitter
         if not isinstance(self.splitter, Splitter):
             splitter = SPLITTERS[self.splitter](criterion,
                                                 random_state)
-
-        self.tree_ = Tree(self.n_features_, self.n_classes_, self.n_outputs_)
-
-        builder = DepthFirstTreeBuilder(splitter, min_samples_split,
-                                        max_depth)
-        builder.build(self.tree_, X, y, sample_weight, X_idx_sorted)
-
-        if self.n_outputs_ == 1:
-            self.n_classes_ = self.n_classes_[0]
-            self.classes_ = self.classes_[0]
-
-        return self
+        #
+        # self.tree_ = Tree(self.n_features_, self.n_classes_, self.n_outputs_)
+        #
+        # builder = DepthFirstTreeBuilder(splitter, min_samples_split,
+        #                                 max_depth)
+        # builder.build(self.tree_, X, y, sample_weight, X_idx_sorted)
+        #
+        # if self.n_outputs_ == 1:
+        #     self.n_classes_ = self.n_classes_[0]
+        #     self.classes_ = self.classes_[0]
+        #
+        # return self
 
     def _validate_X_predict(self, X, check_input):
         """Validate X whenever one tries to predict, apply, predict_proba"""

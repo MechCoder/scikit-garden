@@ -223,14 +223,11 @@ cdef class RegressionCriterion(Criterion):
 
     cdef double sq_sum_total
 
-    def __cinit__(self, SIZE_t n_outputs, SIZE_t n_samples):
+    def __cinit__(self, SIZE_t n_samples):
         """Initialize parameters for this criterion.
 
         Parameters
         ----------
-        n_outputs : SIZE_t
-            The number of targets to be predicted
-
         n_samples : SIZE_t
             The total number of samples to fit on
         """
@@ -244,8 +241,6 @@ cdef class RegressionCriterion(Criterion):
         self.start = 0
         self.pos = 0
         self.end = 0
-
-        self.n_outputs = n_outputs
         self.n_samples = n_samples
         self.n_node_samples = 0
         self.weighted_n_node_samples = 0.0
@@ -261,9 +256,9 @@ cdef class RegressionCriterion(Criterion):
         self.sum_right = NULL
 
         # Allocate memory for the accumulators
-        self.sum_total = <double*> calloc(n_outputs, sizeof(double))
-        self.sum_left = <double*> calloc(n_outputs, sizeof(double))
-        self.sum_right = <double*> calloc(n_outputs, sizeof(double))
+        self.sum_total = <double*> calloc(1, sizeof(double))
+        self.sum_left = <double*> calloc(1, sizeof(double))
+        self.sum_right = <double*> calloc(1, sizeof(double))
 
         if (self.sum_total == NULL or
                 self.sum_left == NULL or
@@ -517,8 +512,7 @@ cdef class ClassificationCriterion(Criterion):
     cdef SIZE_t* n_classes
     cdef SIZE_t sum_stride
 
-    def __cinit__(self, SIZE_t n_outputs,
-                  np.ndarray[SIZE_t, ndim=1] n_classes):
+    def __cinit__(self, SIZE_t n_classes):
         """Initialize attributes for this criterion.
 
         Parameters
@@ -538,7 +532,6 @@ cdef class ClassificationCriterion(Criterion):
         self.pos = 0
         self.end = 0
 
-        self.n_outputs = n_outputs
         self.n_samples = 0
         self.n_node_samples = 0
         self.weighted_n_node_samples = 0.0
@@ -551,25 +544,11 @@ cdef class ClassificationCriterion(Criterion):
         self.sum_right = NULL
         self.n_classes = NULL
 
-        safe_realloc(&self.n_classes, n_outputs)
-
         cdef SIZE_t k = 0
-        cdef SIZE_t sum_stride = 0
-
-        # For each target, set the number of unique classes in that target,
-        # and also compute the maximal stride of all targets
-        for k in range(n_outputs):
-            self.n_classes[k] = n_classes[k]
-
-            if n_classes[k] > sum_stride:
-                sum_stride = n_classes[k]
-
-        self.sum_stride = sum_stride
-
-        cdef SIZE_t n_elements = n_outputs * sum_stride
-        self.sum_total = <double*> calloc(n_elements, sizeof(double))
-        self.sum_left = <double*> calloc(n_elements, sizeof(double))
-        self.sum_right = <double*> calloc(n_elements, sizeof(double))
+        cdef SIZE_t sum_stride = n_classes
+        self.sum_total = <double*> calloc(n_classes, sizeof(double))
+        self.sum_left = <double*> calloc(n_classes, sizeof(double))
+        self.sum_right = <double*> calloc(n_classes, sizeof(double))
 
         if (self.sum_total == NULL or
                 self.sum_left == NULL or
