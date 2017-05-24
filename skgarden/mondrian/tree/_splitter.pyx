@@ -67,7 +67,6 @@ cdef class Splitter:
         self.y = NULL
         self.y_stride = 0
         self.sample_weight = NULL
-
         self.random_state = random_state
 
     def __dealloc__(self):
@@ -86,7 +85,7 @@ cdef class Splitter:
 
     cdef int init(self,
                    object X,
-                   np.ndarray[DOUBLE_t, ndim=2, mode="c"] y,
+                   np.ndarray[DOUBLE_t, ndim=1, mode="c"] y,
                    DOUBLE_t* sample_weight,
                    np.ndarray X_idx_sorted=None) except -1:
         """Initialize the splitter.
@@ -231,7 +230,7 @@ cdef class BaseDenseSplitter(Splitter):
 
     cdef int init(self,
                   object X,
-                  np.ndarray[DOUBLE_t, ndim=2, mode="c"] y,
+                  np.ndarray[DOUBLE_t, ndim=1, mode="c"] y,
                   DOUBLE_t* sample_weight,
                   np.ndarray X_idx_sorted=None) except -1:
         """Initialize the splitter
